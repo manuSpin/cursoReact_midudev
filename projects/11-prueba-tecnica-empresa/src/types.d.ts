@@ -4,6 +4,11 @@ declare global {
     }
 }
 
+export interface Data {
+    nextCursor: number;
+    users: User[];
+}
+
 export interface User {
     gender: string
     name: Name

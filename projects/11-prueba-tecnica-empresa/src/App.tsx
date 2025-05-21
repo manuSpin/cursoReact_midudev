@@ -1,26 +1,18 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useMemo, useState } from 'react';
 import './App.css'
 import { SortBy, type User } from './types.d';
 import { UsersLists } from './components/UsersList';
+import { useUsers } from './hooks/useUsers';
+import { Results } from './components/Results';
+
+
 
 function App() {
-  const [users, setUsers] = useState<User[]>([]);
+  const { isLoading, isError, users, refetch, fetchNextPage, hasNextPage } = useUsers();
+
   const [showColor, setShowColor] = useState(false);
   const [sorting, setSorting] = useState<SortBy>(SortBy.NONE);
   const [filterCountry, setFilterCountry] = useState<string | null>(null);
-  const originalUsers = useRef<User[]>([]);
-
-  useEffect(() => {
-    fetch('https://randomuser.me/api?results=100')
-      .then(async res => await res.json())
-      .then(data => {
-        setUsers(data.results);
-        originalUsers.current = data.results;
-      })
-      .catch(error => console.log(error));
-
-  }, []);
-
 
   const toggleColors = () => {
     setShowColor(!showColor);
@@ -32,12 +24,12 @@ function App() {
   }
 
   const handleDelete = (uuid: string) => {
-    const filteredUsers = users.filter((user) => user.login.uuid !== uuid);
-    setUsers(filteredUsers);
+    // const filteredUsers = users.filter((user) => user.login.uuid !== uuid);
+    // setUsers(filteredUsers);
   }
 
-  const handleReset = () => {
-    setUsers(originalUsers.current);
+  const handleReset = async () => {
+    await refetch();
   }
 
   const handleChangeSort = (sort: SortBy) => {
@@ -82,6 +74,8 @@ function App() {
     <>
       <h1>Prueba tecnica</h1>
 
+      <Results />
+
       <header style={{ display: 'flex', gap: '8px', justifyContent: 'center', marginBottom: '20px', alignItems: 'center' }}>
         <button onClick={toggleColors}>Colorear filas</button>
         <button onClick={toggleSortByCountry}>
@@ -91,7 +85,15 @@ function App() {
         <input placeholder="Filtra por país" type='text' onChange={(event) => setFilterCountry(event.currentTarget.value)} />
       </header>
 
-      <UsersLists changeSorting={handleChangeSort} users={sortedUsers} showColors={showColor} deleteUser={handleDelete} />
+      <main>
+        {users.length > 0 && <UsersLists changeSorting={handleChangeSort} users={sortedUsers} showColors={showColor} deleteUser={handleDelete} />}
+        {isLoading && <strong>Cargando...</strong>}
+        {isError && <p>Ha habido un error</p>}
+        {!isLoading && !isError && users.length === 0 && <p>No hay usuarios</p>}
+        {!isLoading && !isError && hasNextPage === true && <button onClick={() => fetchNextPage()}>Cargar más resultados</button>}
+        {!isLoading && !isError && hasNextPage === false && <p>No hay más resultados</p>}
+      </main>
+
     </>
   )
 }
